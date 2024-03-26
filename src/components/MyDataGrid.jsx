@@ -1,6 +1,6 @@
-import styled from "styled-components";
+import React, { useState } from "react";
+import styled, { css } from "styled-components";
 import productsData from "../data/sample_products_corrected.json";
-import { useState } from "react";
 
 const Container = styled.div`
   padding: 20px;
@@ -13,14 +13,42 @@ const Table = styled.table`
   td {
     border: 1px solid #ddd;
     padding: 8px;
+    text-align: left;
   }
   th {
     background-color: #f2f2f2;
+    cursor: pointer;
   }
+`;
+
+const SortIcon = styled.span`
+  margin-left: 5px;
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  ${({ direction }) =>
+    direction === "asc"
+      ? css`
+          border-bottom: 5px solid black;
+        `
+      : css`
+          border-top: 5px solid black;
+        `}
 `;
 
 const FilterContainer = styled.div`
   margin-bottom: 20px;
+`;
+
+const ActiveColumn = styled.th`
+  ${({ isActive }) =>
+    isActive &&
+    css`
+      background-color: #d4d4d4;
+    `}
+  cursor: pointer;
 `;
 
 const MyDataGrid = () => {
@@ -30,18 +58,30 @@ const MyDataGrid = () => {
     "category",
     "price",
   ]);
+  const [sortBy, setSortBy] = useState("");
+  const [sortDirection, setSortDirection] = useState("asc");
 
-  const filteredProducts = filter
-    ? productsData.filter((product) => product.category === filter)
-    : productsData;
-
-  const toggleColumnVisibility = (columnName) => {
-    setVisibleColumns((prevColumns) =>
-      prevColumns.includes(columnName)
-        ? prevColumns.filter((col) => col !== columnName)
-        : [...prevColumns, columnName]
-    );
+  const sortProducts = (a, b) => {
+    if (!sortBy) return 0;
+    if (a[sortBy] < b[sortBy]) return sortDirection === "asc" ? -1 : 1;
+    if (a[sortBy] > b[sortBy]) return sortDirection === "asc" ? 1 : -1;
+    return 0;
   };
+
+  const handleSort = (columnName) => {
+    if (sortBy === columnName) {
+      setSortDirection((prevDirection) =>
+        prevDirection === "asc" ? "desc" : "asc"
+      );
+    } else {
+      setSortBy(columnName);
+      setSortDirection("asc");
+    }
+  };
+
+  const filteredAndSortedProducts = productsData
+    .filter((product) => !filter || product.category === filter)
+    .sort(sortProducts);
 
   return (
     <Container>
@@ -66,7 +106,13 @@ const MyDataGrid = () => {
             <input
               type="checkbox"
               checked={visibleColumns.includes(columnName)}
-              onChange={() => toggleColumnVisibility(columnName)}
+              onChange={() =>
+                setVisibleColumns((current) =>
+                  current.includes(columnName)
+                    ? current.filter((col) => col !== columnName)
+                    : [...current, columnName]
+                )
+              }
             />
             {columnName}
           </label>
@@ -75,13 +121,22 @@ const MyDataGrid = () => {
       <Table>
         <thead>
           <tr>
-            {visibleColumns.includes("name") && <th>Name</th>}
-            {visibleColumns.includes("category") && <th>Category</th>}
-            {visibleColumns.includes("price") && <th>Price</th>}
+            {visibleColumns.map((columnName) => (
+              <ActiveColumn
+                key={columnName}
+                onClick={() => handleSort(columnName)}
+                isActive={sortBy === columnName}
+              >
+                {columnName.charAt(0).toUpperCase() + columnName.slice(1)}
+                {sortBy === columnName && (
+                  <SortIcon direction={sortDirection} />
+                )}
+              </ActiveColumn>
+            ))}
           </tr>
         </thead>
         <tbody>
-          {filteredProducts.map((product) => (
+          {filteredAndSortedProducts.map((product) => (
             <tr key={product.id}>
               {visibleColumns.includes("name") && <td>{product.name}</td>}
               {visibleColumns.includes("category") && (
