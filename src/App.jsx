@@ -1,4 +1,3 @@
-import React from "react";
 import MyDataGrid from "./components/MyDataGrid";
 
 function App() {
